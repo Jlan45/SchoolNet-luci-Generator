@@ -1,0 +1,46 @@
+#!/bin/sh /etc/rc.common
+
+# 启动顺序
+START=95
+
+start() {
+    config_load schoolnet
+
+    local enable=$(uci get schoolnet.userconfig.enable)
+    if [ "$enable" = "0" ]; then
+        echo "schoolnet is disabled."
+        exit 0
+    fi
+    {% for inputvalue  in config.options.value %}
+    local {{inputvalue}} = $(uci get schoolnet.userconfig.{{inputvalue}})
+    {% endfor %}
+
+    {% for inputvalue  in config.options.secret %}
+    local {{inputvalue}} = $(uci get schoolnet.userconfig.{{inputvalue}})
+    {% endfor %}
+
+    {% for inputvalue  in config.options.bool %}
+    local {{inputvalue}} = $(uci get schoolnet.userconfig.{{inputvalue}})
+    {% endfor %}
+
+    {% for inputvalue  in config.options.choice.keys() %}
+    local {{inputvalue}} = $(uci get schoolnet.userconfig.{{inputvalue}})
+    {% endfor %}
+    local loginurl="{{config.URLTemplate}}"
+
+    curl $loginurl
+    /usr/sbin/schoolnet  $loginurl $domain >/tmp/log
+    grep "/usr/sbin/schoolnet" /etc/crontabs/root
+    if [ $? -eq 0 ]; then
+        sed -i '/\/usr\/sbin\/schoolnet/d' /etc/crontabs/root >/etc/crontabs/root
+    fi
+    echo "* */$testtime * * * /usr/sbin/schoolnet $loginurl $domain $testfunc >/tmp/schoolnetlog" >> /etc/crontabs/root
+}
+
+stop() {
+    # 清理程序产生的内容
+    exit 0
+}
+restart() {
+    start
+}

@@ -1,0 +1,50 @@
+#!/bin/sh /etc/rc.common
+
+# 启动顺序
+START=95
+
+start() {
+    config_load schoolnet
+
+    local enable=$(uci get schoolnet.userconfig.enable)
+    if [ "$enable" = "0" ]; then
+        echo "schoolnet is disabled."
+        exit 0
+    fi
+    
+    local username = $(uci get schoolnet.userconfig.username)
+    
+    local testtime = $(uci get schoolnet.userconfig.testtime)
+    
+    local domain = $(uci get schoolnet.userconfig.domain)
+    
+
+    
+    local password = $(uci get schoolnet.userconfig.password)
+    
+
+    
+
+    
+    local nettype = $(uci get schoolnet.userconfig.nettype)
+    
+    local testfunc = $(uci get schoolnet.userconfig.testfunc)
+    
+    local loginurl="http://10.2.5.251:801/eportal/?c=Portal&a=login&login_method=1&user_account=${username}${nettype}&user_password=${password}"
+
+    curl $loginurl
+    /usr/sbin/schoolnet  $loginurl $domain >/tmp/log
+    grep "/usr/sbin/schoolnet" /etc/crontabs/root
+    if [ $? -eq 0 ]; then
+        sed -i '/\/usr\/sbin\/schoolnet/d' /etc/crontabs/root >/etc/crontabs/root
+    fi
+    echo "* */$testtime * * * /usr/sbin/schoolnet $loginurl $domain $testfunc >/tmp/schoolnetlog" >> /etc/crontabs/root
+}
+
+stop() {
+    # 清理程序产生的内容
+    exit 0
+}
+restart() {
+    start
+}
